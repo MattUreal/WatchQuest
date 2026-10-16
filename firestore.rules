@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each user can only touch their own library
+    match /users/{uid}/library/{itemId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['id','type','title','poster','date','rating','favorite','watched','watchLater','updatedAt'])
+        && request.resource.data.type in ['movie','tv']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() < 300;
+    }
+
+    // Site settings: everyone can read, only admins can write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}
